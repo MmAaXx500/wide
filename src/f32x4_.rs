@@ -2,6 +2,8 @@ use super::*;
 
 pick! {
   if #[cfg(target_feature="sse")] {
+    use std::arch::x86::*;
+
     #[derive(Default, Clone, Copy, PartialEq)]
     #[repr(C, align(16))]
     pub struct f32x4 { pub(crate) sse: m128 }
@@ -1623,7 +1625,12 @@ impl f32x4 {
   #[inline]
   pub fn from_i32x4(v: i32x4) -> Self {
     pick! {
-      if #[cfg(target_feature="sse2")] {
+      if #[cfg(target_feature="sse")] {
+        Self { sse: m128( unsafe {
+            let arr = v.as_array_ref();
+            _mm_set_ps(arr[3] as f32, arr[2] as f32, arr[1] as f32, arr[0] as f32)
+        }) }
+      } else if #[cfg(target_feature="sse2")] {
         Self { sse: convert_to_m128_from_i32_m128i(v.sse) }
       } else if #[cfg(target_feature="simd128")] {
         Self { simd: f32x4_convert_i32x4(v.simd) }
